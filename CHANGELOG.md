@@ -8,6 +8,10 @@ and this project adheres to Semantic Versioning (https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- `NetClass` now accepts a `nets` field to assign nets to a netclass by explicit name or KiCad wildcard pattern (e.g. `nets=["VCC_5V", "V48*"]`), taking precedence over impedance auto-matching.
+
 ## [0.4.7] - 2026-07-10
 
 ### Added

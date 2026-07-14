@@ -104,6 +104,8 @@ layout_test!("complex", "Board");
 
 layout_test!("netclass_assignment", "netclass", true);
 
+layout_test!("netclass_explicit", "netclass", true);
+
 layout_test!("not_connected", "Board");
 
 layout_test!("not_connected_single_pin_multi_pad", "Board");

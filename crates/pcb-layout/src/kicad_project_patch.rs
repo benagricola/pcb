@@ -264,6 +264,7 @@ fn extract_netclasses(project: &Value) -> Vec<NetClass> {
                 color,
                 single_ended_impedance: None,
                 differential_pair_impedance: None,
+                nets: None,
             })
         })
         .collect()

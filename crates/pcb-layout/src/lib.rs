@@ -1,6 +1,6 @@
 use anyhow::{Context, Result as AnyhowResult};
 use atomicwrites::{AtomicFile, OverwriteBehavior};
-use log::{debug, info};
+use log::{debug, info, warn};
 use pcb_sch::{ATTR_LAYOUT_PATH, AttributeValue, InstanceKind, Schematic};
 use pcb_zen_core::diagnostics::Diagnostic;
 use pcb_zen_core::lang::stackup::{BoardConfig, DesignRules, NetClass, Stackup, StackupError};
@@ -946,6 +946,29 @@ fn build_netclass_assignments(
                 .min_by(|(_, e1), (_, e2)| e1.partial_cmp(e2).unwrap())
         {
             assignments.insert(net_name.clone(), nc.name.clone());
+        }
+    }
+
+    // Explicit net/pattern assignments (issue #913) take precedence over impedance auto-matching.
+    for nc in netclasses {
+        let Some(nets) = &nc.nets else {
+            continue;
+        };
+        for pattern in nets {
+            if !pattern.contains(['*', '?']) && !schematic.nets.contains_key(pattern) {
+                warn!(
+                    "netclass '{}' lists net '{}', which is not present in the schematic",
+                    nc.name, pattern
+                );
+            }
+            if let Some(prev) = assignments.insert(pattern.clone(), nc.name.clone()) {
+                if prev != nc.name {
+                    warn!(
+                        "net/pattern '{}' reassigned to netclass '{}' (was '{}')",
+                        pattern, nc.name, prev
+                    );
+                }
+            }
         }
     }
 

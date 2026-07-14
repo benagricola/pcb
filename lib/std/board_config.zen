@@ -97,6 +97,7 @@ NetClass = record(
     color=field(str | None, None),  # PCB color (hex like "#FF0000" or CSS name)
     single_ended_impedance=field(Impedance | None, None),
     differential_pair_impedance=field(Impedance | None, None),
+    nets=field(list | None, None),  # Explicit net names or KiCad wildcard patterns assigned to this class
 )
 
 # Design rules container

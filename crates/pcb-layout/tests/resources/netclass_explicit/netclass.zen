@@ -1,0 +1,65 @@
+load("@stdlib/board_config.zen", "Board", "BoardConfig", "DesignRules", "NetClass")
+load("@stdlib/units.zen", "Impedance")
+
+# Explicit net-to-netclass assignment (issue #913).
+# Nets are claimed by name ("VCC_5V", "GND_PWR") or by KiCad wildcard pattern ("V48*").
+vcc_5v = Net("VCC_5V")
+gnd_pwr = Net("GND_PWR")
+v48_main = Net("V48_MAIN")
+v48_aux = Net("V48_AUX")
+
+# Precedence case: this net carries an impedance that WOULD auto-match the
+# "SE50" class (single_ended_impedance=50), but it is ALSO claimed by name in
+# the "Power" class's `nets`. Explicit assignment must win -> it lands in Power,
+# not SE50. (Exercises the "explicit overrides impedance" path.)
+special = Net("SPECIAL", impedance = Impedance(50))
+
+# Wire the nets into a component so they are present in the schematic.
+Component(
+    name="U1",
+    skip_bom=True,
+    footprint=File(
+        "@stdlib/kicad-footprints/Connector_PinHeader_2.54mm.pretty/PinHeader_1x05_P2.54mm_Vertical.kicad_mod"
+    ),
+    pin_defs={"1": "1", "2": "2", "3": "3", "4": "4", "5": "5"},
+    pins={
+        "1": vcc_5v,
+        "2": gnd_pwr,
+        "3": v48_main,
+        "4": v48_aux,
+        "5": special,
+    },
+)
+
+# No `layers` here: an explicit BoardConfig drives the netclasses so the test
+# exercises the `nets` field without pulling in the impedance preset netclasses.
+Board(
+    name="netclass_explicit_test",
+    layout_path="module/",
+    config=BoardConfig(
+        design_rules=DesignRules(
+            netclasses=[
+                NetClass(
+                    name="Power",
+                    track_width=0.5,
+                    clearance=0.2,
+                    nets=["VCC_5V", "GND_PWR", "SPECIAL"],
+                ),
+                NetClass(
+                    name="HV",
+                    track_width=1.5,
+                    nets=["V48*"],
+                ),
+                # SPECIAL has impedance=50 and would auto-match SE50, but the
+                # explicit nets=["SPECIAL"] on Power must take precedence.
+                NetClass(
+                    name="SE50",
+                    track_width=0.15,
+                    clearance=0.15,
+                    single_ended_impedance=Impedance(50),
+                ),
+            ],
+        ),
+    ),
+    bom_profile=None,
+)

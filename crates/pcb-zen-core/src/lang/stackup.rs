@@ -279,6 +279,9 @@ pub struct NetClass {
     /// Differential pair impedance target (in Ohms)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub differential_pair_impedance: Option<PhysicalValue>,
+    /// Explicit net names or KiCad wildcard patterns assigned to this class.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nets: Option<Vec<String>>,
 }
 
 impl NetClass {

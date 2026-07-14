@@ -599,6 +599,12 @@ Key parameters: `name`, `layout_path`, `layers` (2/4/6/8/10), `config` (explicit
 
 When `layers` is provided, `Board()` selects an appropriate default stackup, netclasses, and design rules. An explicit `config` is merged on top. See `@stdlib/board_config.zen` for `BoardConfig`, `Stackup`, `DesignRules`, `NetClass`, and preset stackups.
 
+A `NetClass` can claim nets explicitly via its `nets` field, listing net names or KiCad wildcard patterns. Explicit assignments take precedence over impedance auto-matching.
+
+```python
+NetClass(name="Power", track_width=0.5, clearance=0.2, nets=["VCC_5V", "GND_PWR", "V48*"])
+```
+
 `Layout()` defines reusable layout blocks for modules. When writing a module, use `Layout(name, path)` to associate a PCB layout with the subcircuit. See `@stdlib/properties.zen`.
 
 **`Simulation(name, setup=None, modifiers=None, bom_profile=...)`** — Attach inline simulation setup and component modifiers to the current module.
