@@ -860,6 +860,7 @@ mod tests {
                 color: None,
                 single_ended_impedance: None,
                 differential_pair_impedance: None,
+                nets: None,
             }],
         };
 

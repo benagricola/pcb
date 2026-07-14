@@ -1,0 +1,22 @@
+---
+source: crates/pcb-layout/tests/layout_generation.rs
+expression: content
+---
+[
+  {
+    "netclass": "Power",
+    "pattern": "GND_PWR"
+  },
+  {
+    "netclass": "Power",
+    "pattern": "SPECIAL"
+  },
+  {
+    "netclass": "HV",
+    "pattern": "V48*"
+  },
+  {
+    "netclass": "Power",
+    "pattern": "VCC_5V"
+  }
+]
