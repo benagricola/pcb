@@ -1543,6 +1543,15 @@ def _apply_view_to_footprint(
                 field.SetVisible(False)
 
 
+def seed_for_path(path_str: str) -> int:
+    """A stable generator seed for one instance path.
+
+    The same v5 identity the KIID path uses, folded into the int the KiCad
+    generator takes, so the two agree on what identifies a footprint."""
+    ident = uuid_module.uuid5(uuid_module.NAMESPACE_URL, path_str)
+    return ident.int & 0x7FFFFFFF
+
+
 def _create_footprint(
     view: FootprintView,
     complement: FootprintComplement,
@@ -1565,6 +1574,16 @@ def _create_footprint(
     lib_uri = lib_uri.replace("\\\\?\\", "")  # Windows path fix
     load_error = f"Failed to load footprint '{fp_name}' from library '{fp_lib}'"
 
+    # Seed the UUID generator from THIS footprint's instance path, so the
+    # footprint and every pad and graphic it carries get UUIDs that depend on
+    # nothing but the footprint itself. A run-wide seed alone is not enough:
+    # the UUIDs then follow the allocation sequence, so inserting one part in
+    # the schematic renumbers its neighbours - and since KiCad emits footprints
+    # ordered by UUID, they move in the file as well, for no reason a reader
+    # can act on. Keyed on the path, an edit touches only what it changed.
+    path_str = str(view.entity_id.path)
+    pcbnew.KIID.SeedGenerator(seed_for_path(path_str))
+
     try:
         fp = pcbnew.FootprintLoad(lib_uri, fp_name)
     except Exception as error:
@@ -1581,7 +1600,6 @@ def _create_footprint(
     if value_field:
         value_field.SetVisible(False)
 
-    path_str = str(view.entity_id.path)
     new_uuid = str(uuid_module.uuid5(uuid_module.NAMESPACE_URL, path_str))
     fp.SetPath(pcbnew.KIID_PATH(f"/{new_uuid}/{new_uuid}"))
 
