@@ -435,6 +435,10 @@ def rmv_quotes(s):
     return s
 
 
+# Any fixed value; it only has to be the same on every run.
+SYNC_UUID_SEED = 0x50434220  # "PCB "
+
+
 def get_footprint_uuid(fp: pcbnew.FOOTPRINT) -> str:
     """Return the UUID of a footprint."""
     path = fp.GetPath().AsString()
@@ -936,6 +940,17 @@ def main():
         help="""Reload managed footprint definitions from source; preserve placement and routing.""",
     )
     args = parser.parse_args()
+
+    # Every UUID this sync mints comes from KiCad's own generator, which is
+    # seeded randomly per process. That makes a regenerated board differ from
+    # its predecessor in every UUID even when the design is unchanged, and
+    # KiCad writes footprints ordered BY that UUID, so the whole file reorders
+    # too: a diff of two generations is thousands of lines and no information.
+    # Seeding the generator makes the run reproducible. The seed is fixed
+    # rather than derived from the design, because what has to be stable is a
+    # regeneration of the SAME design; per-item stability comes from seeding
+    # each managed footprint on its own path (see the layout adapter).
+    pcbnew.KIID.SeedGenerator(SYNC_UUID_SEED)
 
     logger.setLevel(logging.DEBUG)
 
