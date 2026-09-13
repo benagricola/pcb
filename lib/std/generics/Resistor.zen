@@ -16,6 +16,7 @@ esl = config(Inductance, optional=True, help="Parasitic series inductance (defau
 cp = config(Capacitance, optional=True, help="Parasitic parallel capacitance (default: 0.05pF)")
 use_us_symbol = config(bool, default=False, optional=True, help="Use US symbol")
 skip_bom = config(bool, default=False, help="Skip the BOM generation")
+annotations = config(dict, default={}, optional=True, help="Extra footprint fields (layout checks read them)")
 
 # Properties – combined and normalized
 properties = {
@@ -28,6 +29,7 @@ if voltage:
     properties["voltage"] = voltage
 if power:
     properties["power"] = power
+properties.update(annotations)
 
 P1 = io(Net)
 P2 = io(Net)

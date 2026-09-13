@@ -18,6 +18,7 @@ esl = config(Inductance, optional=True, help="Equivalent series inductance")
 t_max = config(Temperature, optional=True, help="Maximum operating temperature")
 t_min = config(Temperature, optional=True, help="Minimum operating temperature")
 skip_bom = config(bool, default=False, help="Skip the BOM generation")
+annotations = config(dict, default={}, optional=True, help="Extra footprint fields (layout checks read them)")
 
 P1 = io(Net)
 P2 = io(Net)
@@ -45,6 +46,7 @@ if dielectric:
     properties["dielectric"] = dielectric
 if esr:
     properties["esr"] = esr
+properties.update(annotations)
 
 
 def _symbol(mount: Mount, package: Package):
