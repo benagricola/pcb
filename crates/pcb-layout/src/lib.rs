@@ -19,9 +19,9 @@ use pcb_kicad::{PythonScriptBuilder, ensure_board_compatible_with_installed_kica
 use pcb_sch::kicad_netlist::{try_format_footprint_with_package_roots, write_fp_lib_table};
 
 mod effective_netlist;
-pub mod nets_layout;
 mod kicad_project_patch;
 mod moved;
+pub mod nets_layout;
 mod repair_nets;
 use effective_netlist::{
     DiffSeverity, diff_effective_netlists, layout_effective_netlist, source_effective_netlist,

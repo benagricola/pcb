@@ -330,6 +330,11 @@ impl<'v> ContextValue<'v> {
             .infer_net_name(id, inferred_name.to_string())
     }
 
+    /// Record an interface instance bound to a module-level name in the current module.
+    pub(crate) fn record_interface(&self, bound: super::module::BoundInterface) {
+        self.module.borrow_mut().record_interface(bound)
+    }
+
     /// Unregister a previously registered net from the current module.
     pub(crate) fn unregister_net(&self, id: NetId) {
         self.module.borrow_mut().unregister_net(id)

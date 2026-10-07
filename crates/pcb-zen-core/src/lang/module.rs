@@ -72,6 +72,39 @@ pub struct IntroducedNet {
     pub kind: String,
 }
 
+/// Member path (`CLK`, `CLK.P`) -> net id.
+pub type InterfaceMembers = Vec<(String, NetId)>;
+/// Nested interface path (`CLK`) -> its type (`DiffPair`).
+pub type NestedInterfaces = Vec<(String, String)>;
+
+/// An interface instance bound to a module-level name in this module.
+#[derive(Clone, Debug, PartialEq, Trace, Allocative, Freeze)]
+pub struct BoundInterface {
+    pub name: String,
+    pub type_name: String,
+    pub members: InterfaceMembers,
+    pub nested: NestedInterfaces,
+}
+
+impl BoundInterface {
+    /// The members of the nested interface at `path`, relative to it.
+    fn nested_members(&self, path: &str) -> InterfaceMembers {
+        let prefix = format!("{path}.");
+        self.members
+            .iter()
+            .filter_map(|(m, id)| m.strip_prefix(&prefix).map(|rest| (rest.to_string(), *id)))
+            .collect()
+    }
+
+    /// The same instance as `self` or one nested in it: equal type and member nets.
+    pub(crate) fn holds(&self, other: &BoundInterface) -> bool {
+        (self.type_name == other.type_name && self.members == other.members)
+            || self.nested.iter().any(|(path, ty)| {
+                *ty == other.type_name && self.nested_members(path) == other.members
+            })
+    }
+}
+
 #[derive(Clone, Debug, Trace, Allocative, Freeze)]
 pub enum IntroducedNetName {
     Named(String),
@@ -461,6 +494,8 @@ pub struct ModuleValueGen<V: ValueLifetimeless> {
     signature: Vec<ParameterMetadataGen<V>>,
     /// Nets that are introduced (created) by this module. Map of `net id → net info`.
     introduced_nets: SmallMap<NetId, IntroducedNet>,
+    /// Interface instances bound to a module-level name, in binding order.
+    bound_interfaces: Vec<BoundInterface>,
     /// Local name → net id, to enforce uniqueness of names within a module.
     net_name_to_id: SmallMap<String, NetId>,
     /// Parsed position data from pcb:sch comments in this module's source file
@@ -583,6 +618,7 @@ impl<'v, V: ValueLike<'v>> ModuleValueGen<V> {
             properties: SmallMap::new(),
             signature: Vec::new(),
             introduced_nets: SmallMap::new(),
+            bound_interfaces: Vec::new(),
             net_name_to_id: SmallMap::new(),
             positions,
             moved_directives: SmallMap::new(),
@@ -853,6 +889,18 @@ impl<'v, V: ValueLike<'v>> ModuleValueGen<V> {
     }
 
     /// Return the map of nets introduced by this module.
+    pub fn bound_interfaces(&self) -> &[BoundInterface] {
+        &self.bound_interfaces
+    }
+
+    /// Record an interface bound to a module-level name. A second binding of a recorded instance, or of one
+    /// nested in it (`BUS = DISP`, `PAIR = CAM.CLK`), is not recorded again.
+    pub(crate) fn record_interface(&mut self, bound: BoundInterface) {
+        if !self.bound_interfaces.iter().any(|b| b.holds(&bound)) {
+            self.bound_interfaces.push(bound);
+        }
+    }
+
     pub fn introduced_nets(&self) -> &starlark::collections::SmallMap<NetId, IntroducedNet> {
         &self.introduced_nets
     }

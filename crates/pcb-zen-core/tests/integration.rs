@@ -9,6 +9,7 @@ mod cross_package_load;
 mod enum_component_properties;
 mod file;
 mod input;
+mod interfaces_record;
 mod load;
 mod name_inference;
 mod net;

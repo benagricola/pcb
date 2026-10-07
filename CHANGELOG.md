@@ -12,6 +12,7 @@ and this project adheres to Semantic Versioning (https://semver.org/spec/v2.0.0.
 
 - The stdlib net types take `clearance=Length(...)`, a net's electrical clearance; unset reads `None`.
 - `pcb layout` writes `nets.layout.json` beside the netlist: each net's type and fields.
+- `nets.layout.json` names each net's interface instances and lists the differential pairs.
 
 ## [0.4.52] - 2026-09-09
 

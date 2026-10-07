@@ -16,6 +16,7 @@ use std::sync::{Arc, OnceLock};
 
 use crate::lang::context::ContextValue;
 use crate::lang::evaluator_ext::EvaluatorExt;
+use crate::lang::module::{BoundInterface, InterfaceMembers, NestedInterfaces};
 use crate::lang::net::{
     FrozenNetValue, NetId, NetValue, instantiate_generated_net, validate_field,
 };
@@ -680,6 +681,85 @@ where
         variable_name: &str,
         eval: &mut Evaluator<'v, '_, '_>,
     ) -> starlark::Result<()> {
+        // Recorded by the variable name even when `name=` set the nets' prefix.
+        if let (Some(ctx), Some(type_name)) = (eval.context_value(), self.type_name()) {
+            let (members, nested) = self.members();
+            ctx.record_interface(BoundInterface {
+                name: variable_name.to_string(),
+                type_name,
+                members,
+                nested,
+            });
+        }
+        self.infer_names(variable_name, eval)
+    }
+}
+
+impl<'v, V: ValueLike<'v>> InterfaceValueGen<V> {
+    /// The name the interface type was first bound to (`Spi`), if it has been bound.
+    pub fn type_name(&self) -> Option<String> {
+        if let Some(factory) = self.factory.downcast_ref::<InterfaceFactory>() {
+            factory
+                .interface_type_data
+                .get()
+                .map(|type_data| type_data.name.clone())
+        } else if let Some(factory) = self.factory.downcast_ref::<FrozenInterfaceFactory>() {
+            factory
+                .interface_type_data
+                .as_ref()
+                .map(|type_data| type_data.name.clone())
+        } else {
+            None
+        }
+    }
+
+    /// Member nets by dotted path (`CLK`, `CLK.P`) and nested interfaces of a known type by path (`CLK`).
+    pub(crate) fn members(&self) -> (InterfaceMembers, NestedInterfaces) {
+        let mut members = Vec::new();
+        let mut nested = Vec::new();
+        self.collect_members("", &mut members, &mut nested);
+        (members, nested)
+    }
+
+    fn collect_members(
+        &self,
+        prefix: &str,
+        members: &mut InterfaceMembers,
+        nested: &mut NestedInterfaces,
+    ) {
+        for (field_name, field_value) in self.fields.iter() {
+            let path = if prefix.is_empty() {
+                field_name.clone()
+            } else {
+                format!("{prefix}.{field_name}")
+            };
+            let value = field_value.to_value();
+            if let Some(net) = value.downcast_ref::<NetValue<'v>>() {
+                members.push((path, net.id()));
+            } else if let Some(net) = value.downcast_ref::<FrozenNetValue>() {
+                members.push((path, net.id()));
+            } else if let Some(interface) = value.downcast_ref::<InterfaceValue<'v>>() {
+                if let Some(type_name) = interface.type_name() {
+                    nested.push((path.clone(), type_name));
+                }
+                interface.collect_members(&path, members, nested);
+            } else if let Some(interface) = value.downcast_ref::<FrozenInterfaceValue>() {
+                if let Some(type_name) = interface.type_name() {
+                    nested.push((path.clone(), type_name));
+                }
+                interface.collect_members(&path, members, nested);
+            }
+        }
+    }
+}
+
+impl<'v, V: ValueLike<'v>> InterfaceValueGen<V> {
+    /// Name this instance's generated nets after the variable it is bound to.
+    fn infer_names(
+        &self,
+        variable_name: &str,
+        eval: &mut Evaluator<'v, '_, '_>,
+    ) -> starlark::Result<()> {
         if self.instance_root_name.is_some() {
             return Ok(());
         }
@@ -702,7 +782,7 @@ where
                 };
                 net.infer_assignment_name(&inferred_name, eval)?;
             } else if let Some(interface) = field_value.downcast_ref::<InterfaceValue<'v>>() {
-                interface.export_as(variable_name, eval)?;
+                interface.infer_names(variable_name, eval)?;
             }
         }
 
@@ -715,20 +795,7 @@ impl<'v, V: ValueLike<'v>> std::fmt::Display for InterfaceValueGen<V> {
         let mut items: Vec<_> = self.fields.iter().collect();
         items.sort_by_key(|(k, _)| *k);
 
-        let name = if let Some(factory) = self.factory.downcast_ref::<InterfaceFactory>() {
-            factory
-                .interface_type_data
-                .get()
-                .map(|type_data| type_data.name.clone())
-        } else if let Some(factory) = self.factory.downcast_ref::<FrozenInterfaceFactory>() {
-            factory
-                .interface_type_data
-                .as_ref()
-                .map(|type_data| type_data.name.clone())
-        } else {
-            None
-        };
-        let type_name = name.unwrap_or_else(|| "<Unknown>".to_string());
+        let type_name = self.type_name().unwrap_or_else(|| "<Unknown>".to_string());
 
         write!(f, "{type_name}(")?;
         for (i, (k, v)) in items.iter().enumerate() {

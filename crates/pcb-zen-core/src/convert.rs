@@ -1,7 +1,7 @@
 use crate::lang::r#enum::EnumValue;
 use crate::lang::interface::FrozenInterfaceValue;
 use crate::lang::io_direction::IoDirection;
-use crate::lang::module::{ModulePath, find_moved_span};
+use crate::lang::module::{BoundInterface, ModulePath, find_moved_span};
 use crate::lang::net::net_kind_requires_name;
 use crate::lang::part::PartValue;
 use crate::lang::symbol::SymbolValue;
@@ -314,6 +314,8 @@ impl ModuleConverter {
 
             self.schematic.add_net(net);
         }
+
+        self.schematic.interfaces = collect_interfaces(&module_tree, &self.schematic);
 
         // Finalize the component models now that we have finalized the net names
         for (instance_ref, model) in &self.comp_models {
@@ -1169,6 +1171,97 @@ fn collect_net_ids_into(value: Value, net_ids: &mut HashSet<NetId>) {
             collect_net_ids_into(field.to_value(), net_ids);
         }
     }
+}
+
+/// Interface instances by path: each module's module-level bindings and its io() interface parameters, under the
+/// module's path, with nested interfaces as entries of their own. Members map to final net names; a member whose net
+/// is not on the schematic (an io() template net) is dropped, and so is an instance left with no members.
+fn collect_interfaces(
+    tree: &BTreeMap<ModulePath, FrozenModuleValue>,
+    schematic: &Schematic,
+) -> Vec<pcb_sch::InterfaceInstance> {
+    let names: HashMap<NetId, &str> = schematic
+        .nets
+        .values()
+        .map(|net| (net.id, net.name.as_str()))
+        .collect();
+    let mut out: BTreeMap<String, pcb_sch::InterfaceInstance> = BTreeMap::new();
+    let mut add = |path: String, type_name: &str, members: &[(String, NetId)]| {
+        let members: BTreeMap<String, String> = members
+            .iter()
+            .filter_map(|(m, id)| names.get(id).map(|n| (m.clone(), n.to_string())))
+            .collect();
+        if !members.is_empty() {
+            out.entry(path.clone())
+                .or_insert(pcb_sch::InterfaceInstance {
+                    path,
+                    type_name: type_name.to_string(),
+                    members,
+                });
+        }
+    };
+    let mut add_with_nested = |path: String,
+                               type_name: &str,
+                               members: &[(String, NetId)],
+                               nested: &[(String, String)]| {
+        for (nested_path, nested_type) in nested {
+            let prefix = format!("{nested_path}.");
+            let nested_members: Vec<(String, NetId)> = members
+                .iter()
+                .filter_map(|(m, id)| m.strip_prefix(&prefix).map(|rest| (rest.to_string(), *id)))
+                .collect();
+            add(
+                format!("{path}.{nested_path}"),
+                nested_type,
+                &nested_members,
+            );
+        }
+        add(path, type_name, members);
+    };
+
+    for (module_path, module) in tree {
+        let scope = module_path.segments.join(".");
+        let scoped = |name: &str| {
+            if scope.is_empty() {
+                name.to_string()
+            } else {
+                format!("{scope}.{name}")
+            }
+        };
+        // io() parameters first: a module-level binding of an io() value is the same instance, named by the io.
+        let mut io_values = Vec::new();
+        for param in module.signature().iter().filter(|p| !p.is_config) {
+            let Some(value) = param.actual_value else {
+                continue;
+            };
+            let Some(interface) = value.downcast_ref::<FrozenInterfaceValue>() else {
+                continue;
+            };
+            let Some(type_name) = interface.type_name() else {
+                continue;
+            };
+            let (members, nested) = interface.members();
+            add_with_nested(scoped(&param.name), &type_name, &members, &nested);
+            io_values.push(BoundInterface {
+                name: param.name.clone(),
+                type_name,
+                members,
+                nested,
+            });
+        }
+        for bound in module.bound_interfaces() {
+            if io_values.iter().any(|io| io.holds(bound)) {
+                continue;
+            }
+            add_with_nested(
+                scoped(&bound.name),
+                &bound.type_name,
+                &bound.members,
+                &bound.nested,
+            );
+        }
+    }
+    out.into_values().collect()
 }
 
 /// Propagate impedance from DiffPair interfaces to P/N nets

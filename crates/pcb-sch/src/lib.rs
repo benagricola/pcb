@@ -771,6 +771,21 @@ pub struct Schematic {
     /// to absolute filesystem path.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub package_roots: BTreeMap<String, PathBuf>,
+
+    /// Interface instances bound to a module-level name or an io() parameter, sorted by path.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub interfaces: Vec<InterfaceInstance>,
+}
+
+/// An interface instance and the nets of its members.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InterfaceInstance {
+    /// Module-level variable name, or `<module path>.<name>` below the root (`DISP`, `display.SPI`, `CAM.CLK`).
+    pub path: String,
+    /// The interface type's name (`Spi`, `DiffPair`).
+    pub type_name: String,
+    /// Member path (`CLK`, or `CLK.P` through a nested interface) -> final net name.
+    pub members: BTreeMap<String, String>,
 }
 
 impl Schematic {

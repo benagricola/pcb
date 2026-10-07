@@ -269,6 +269,8 @@ power = PowerIf(vcc = ext)
 # ext stays "EXT"
 ```
 
+An interface instance bound to a module-level variable, or passed to an `io()` parameter, is exported with the schematic under that name: `DISP = Spi()` in the root is `DISP`, in module `display` it is `display.DISP`, and an `io()` parameter `SPI` of module `display` is `display.SPI`. The variable name is used even when `name=` set the nets' prefix. A nested interface is an entry of its own (`CAM.CLK`, a `DiffPair`) as well as dotted members of its parent (`CLK.P`). A second binding of the same instance (`BUS = DISP`, or `usb = io("USB", Usb2)`, exported as `USB`) adds no entry, and an instance with no module-level binding and no `io()` (one built in a list or a function local) is not exported. `pcb layout` writes these into `nets.layout.json`: each net's instances, and every `DiffPair` as a pair.
+
 The standard library provides common interfaces (`Spi`, `I2c`, `Uart`, `Usb2`, `DiffPair`, `Pcie`, `Jtag`, `Swd`, etc.) in `@stdlib/interfaces.zen`. Helper functions `UartPair(a, b)` and `UsartPair(a, b)` create cross-connected pairs for point-to-point links.
 
 ## Components and symbols
