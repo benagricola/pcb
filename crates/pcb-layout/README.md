@@ -105,6 +105,29 @@ src/scripts/lens/
 └── tests/            # Unit, property, and stateful tests
 ```
 
+## nets.layout.json
+
+`pcb layout` writes `nets.layout.json` beside `default.net` (not with `--check`).
+It lets a layout tool select nets by what the capture says they are.
+
+```json
+{
+  "version": 1,
+  "generator": {"name": "benagricola/pcb", "version": "0.4.52", "git": "0123456789ab"},
+  "netlist": {"file": "default.net", "sha256": "<hex of the default.net bytes>"},
+  "exports": ["types", "fields"],
+  "nets": {
+    "HV": {"type": "Power", "fields": {"voltage": {"value": 48.0, "unit": "V"}, "clearance": {"value": 2.0, "unit": "mm"}}},
+    "SIG": {"type": "Net", "fields": {}}
+  }
+}
+```
+
+- `nets` is keyed by the board's net names (the `Schematic.nets` keys).
+- A physical field is `{value, unit}`: a length in mm, any other in its SI unit.
+- `symbol_*` and `__*` properties are left out.
+- `exports` lists what the file carries; a reader checks it before relying on a key.
+
 ## Verification
 
 Run the Python tests after changing lens behavior:

@@ -190,7 +190,7 @@ nc = NotConnected()
 
 `Net(name_or_net=None, voltage=None, impedance=None, clearance=None)` accepts a
 positional-only name string or existing net to cast. `Power` and `Ground` also
-accept `voltage`. Every net type in `@stdlib/interfaces.zen` accepts
+accept `voltage`. Every net type in `@stdlib/interfaces.zen` except `NotConnected` accepts
 `clearance=Length(...)`, the net's electrical clearance; unset reads `None` and
 is not stored as a net property.
 Additional connected net types (`Analog`, `Pwm`, `Gpio`) are available from

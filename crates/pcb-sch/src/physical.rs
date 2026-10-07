@@ -1089,6 +1089,14 @@ impl FromStr for PhysicalValue {
     }
 }
 
+impl PhysicalValue {
+    /// Parse `s` where a bare `m` or `mm` means metres when `expected` is a length (an untyped parse reads
+    /// them as milli-ohms or fails). A unit that does not match `expected` parses as it would untyped.
+    pub fn parse_as(s: &str, expected: PhysicalUnitDims) -> Result<Self, ParseError> {
+        parse_physical_value(s, Some(expected))
+    }
+}
+
 fn parse_physical_value(
     s: &str,
     expected_unit: Option<PhysicalUnitDims>,

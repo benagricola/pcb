@@ -19,6 +19,7 @@ use pcb_kicad::{PythonScriptBuilder, ensure_board_compatible_with_installed_kica
 use pcb_sch::kicad_netlist::{try_format_footprint_with_package_roots, write_fp_lib_table};
 
 mod effective_netlist;
+pub mod nets_layout;
 mod kicad_project_patch;
 mod moved;
 mod repair_nets;
@@ -46,6 +47,7 @@ pub struct LayoutResult {
     pub layout_dir: PathBuf,
     pub pcb_file: PathBuf,
     pub netlist_file: PathBuf,
+    pub nets_file: PathBuf,
     pub snapshot_file: PathBuf,
     pub log_file: PathBuf,
     pub diagnostics_file: PathBuf,
@@ -91,6 +93,7 @@ pub enum LayoutError {
 #[derive(Debug)]
 pub struct LayoutPaths {
     pub netlist: PathBuf,
+    pub nets: PathBuf,
     pub pcb: PathBuf,
     pub snapshot: PathBuf,
     pub log: PathBuf,
@@ -643,6 +646,7 @@ pub fn check_layout_sync(
         layout_dir,
         pcb_file: pcb_file.clone(),
         netlist_file: paths.netlist,
+        nets_file: paths.nets,
         snapshot_file: paths.snapshot,
         log_file: paths.log,
         diagnostics_file: paths.diagnostics,
@@ -703,8 +707,13 @@ pub fn process_layout(
 
     // Write netlist files
     let netlist_content = pcb_sch::kicad_netlist::to_kicad_netlist(schematic);
-    fs::write(&paths.netlist, netlist_content)
+    fs::write(&paths.netlist, &netlist_content)
         .with_context(|| format!("Failed to write netlist: {}", paths.netlist.display()))?;
+    fs::write(
+        &paths.nets,
+        nets_layout::nets_layout_json(schematic, &netlist_content),
+    )
+    .with_context(|| format!("Failed to write nets layout: {}", paths.nets.display()))?;
 
     // Write footprint library table
     let footprint_lib_dirs = utils::footprint_library_dirs(schematic)?;
@@ -796,6 +805,7 @@ pub fn process_layout(
         layout_dir,
         pcb_file: paths.pcb.clone(),
         netlist_file: paths.netlist,
+        nets_file: paths.nets,
         snapshot_file: paths.snapshot,
         log_file: paths.log,
         diagnostics_file: paths.diagnostics,
@@ -902,6 +912,7 @@ pub mod utils {
         let diagnostics = temp_dir.path().join("diagnostics.layout.json");
         LayoutPaths {
             netlist: layout_dir.join("default.net"),
+            nets: layout_dir.join(nets_layout::FILE),
             pcb: pcb_path,
             snapshot: layout_dir.join("snapshot.layout.json"),
             log: layout_dir.join("layout.log"),

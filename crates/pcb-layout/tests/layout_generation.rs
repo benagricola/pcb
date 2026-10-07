@@ -76,6 +76,7 @@ macro_rules! layout_test {
                 // Verify the layout was created
                 assert!(result.pcb_file.exists(), "PCB file should exist");
                 assert!(result.netlist_file.exists(), "Netlist file should exist");
+                assert!(result.nets_file.exists(), "Nets layout file should exist");
                 assert!(result.snapshot_file.exists(), "Snapshot file should exist");
                 assert!(result.log_file.exists(), "Log file should exist");
 

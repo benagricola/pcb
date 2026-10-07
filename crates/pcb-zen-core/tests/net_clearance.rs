@@ -48,6 +48,11 @@ check(HV.clearance != None, "a set clearance reads back")
         "{:?}",
         hv.properties
     );
+    assert_eq!(
+        hv.properties["clearance"].string(),
+        Some("2mm"),
+        "stored as a PhysicalValue string"
+    );
     let sig = &sch.nets["SIG"];
     assert!(
         !sig.properties.keys().any(|k| k.to_string() == "clearance"),
