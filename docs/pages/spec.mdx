@@ -188,8 +188,11 @@ GND = Ground()  # inferred from assignment; voltage defaults to 0V
 nc = NotConnected()
 ```
 
-`Net(name_or_net=None, voltage=None, impedance=None)` accepts a positional-only
-name string or existing net to cast. `Power` and `Ground` also accept `voltage`.
+`Net(name_or_net=None, voltage=None, impedance=None, clearance=None)` accepts a
+positional-only name string or existing net to cast. `Power` and `Ground` also
+accept `voltage`. Every net type in `@stdlib/interfaces.zen` accepts
+`clearance=Length(...)`, the net's electrical clearance; unset reads `None` and
+is not stored as a net property.
 Additional connected net types (`Analog`, `Pwm`, `Gpio`) are available from
 `@stdlib/interfaces.zen`. `NotConnected` is reserved for the open-net
 constructor; `builtin.net_type("NotConnected")` is invalid.

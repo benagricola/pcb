@@ -8,6 +8,10 @@ and this project adheres to Semantic Versioning (https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- The stdlib net types take `clearance=Length(...)`, a net's electrical clearance; unset reads `None`.
+
 ## [0.4.52] - 2026-09-09
 
 ### Added

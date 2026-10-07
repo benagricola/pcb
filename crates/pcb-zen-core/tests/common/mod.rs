@@ -77,11 +77,11 @@ pub fn stdlib_test_files() -> HashMap<String, String> {
 
 /// Preamble prepended to every `.zen` file in `eval_zen` so tests don't have
 /// to repeat the Net definition in every inline snippet. This must match the
-/// production definition in stdlib/interfaces.zen (symbol, voltage, impedance).
+/// production definition in stdlib/interfaces.zen (symbol, voltage, impedance, clearance).
 const ZEN_TEST_PREAMBLE: &str = "\
 Voltage = builtin.Mass * builtin.Length * builtin.Length / (builtin.Current * builtin.Time * builtin.Time * builtin.Time)\n\
-Impedance = Voltage / builtin.Current\n\
-Net = builtin.net_type(\"Net\", symbol=Symbol, voltage=field(Voltage | None, default=None), impedance=field(Impedance | None, default=None)); io = builtin.io; input = partial(io, direction=\"input\"); output = partial(io, direction=\"output\")\n";
+Impedance = Voltage / builtin.Current; Length = builtin.Length\n\
+Net = builtin.net_type(\"Net\", symbol=Symbol, voltage=field(Voltage | None, default=None), impedance=field(Impedance | None, default=None), clearance=field(Length | None, default=None)); io = builtin.io; input = partial(io, direction=\"input\"); output = partial(io, direction=\"output\")\n";
 
 /// Prepend `ZEN_TEST_PREAMBLE` to a `.zen` source string, matching the
 /// existing indentation so that `dedent` still works correctly.

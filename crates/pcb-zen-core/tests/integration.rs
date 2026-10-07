@@ -12,6 +12,7 @@ mod input;
 mod load;
 mod name_inference;
 mod net;
+mod net_clearance;
 mod not_connected;
 mod part;
 mod refdes;

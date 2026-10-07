@@ -1,29 +1,32 @@
-load("units.zen", "Voltage", "Impedance")
+load("units.zen", "Voltage", "Impedance", "Length")
 
 Net = builtin.net_type(
     "Net",
     symbol=Symbol,
     voltage=field(Voltage | None, default=None),
     impedance=field(Impedance | None, default=None),
+    clearance=field(Length | None, default=None),
 )
 
 Power = builtin.net_type(
     "Power",
     symbol=field(Symbol, default=Symbol("kicad-symbols/power.kicad_symdir/VCC.kicad_sym")),
     voltage=field(Voltage | None, default=None),
+    clearance=field(Length | None, default=None),
 )
 
 Ground = builtin.net_type(
     "Ground",
     symbol=field(Symbol, default=Symbol("kicad-symbols/power.kicad_symdir/GND.kicad_sym")),
     voltage=field(Voltage, default=Voltage("0V")),
+    clearance=field(Length | None, default=None),
 )
 
 NotConnected = builtin.not_connected
 
-Analog = builtin.net_type("Analog")
-Pwm = builtin.net_type("Pwm")
-Gpio = builtin.net_type("Gpio")
+Analog = builtin.net_type("Analog", clearance=field(Length | None, default=None))
+Pwm = builtin.net_type("Pwm", clearance=field(Length | None, default=None))
+Gpio = builtin.net_type("Gpio", clearance=field(Length | None, default=None))
 
 DiffPair = interface(
     P=Net(),
