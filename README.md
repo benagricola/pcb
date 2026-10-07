@@ -66,7 +66,7 @@ cd pcb
 ./install.sh --local
 ```
 
-Requires Rust. See [AGENTS.md](AGENTS.md) for test commands and repository conventions.
+Requires Rust.
 
 ## License
 
