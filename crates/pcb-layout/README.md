@@ -124,7 +124,8 @@ It lets a layout tool select nets by what the capture says they are.
 ```
 
 - `nets` is keyed by the board's net names (the `Schematic.nets` keys).
-- A physical field is `{value, unit}`: a length in mm, any other in its SI unit.
+- A physical field is `{value, unit}`: a length in mm, resistance as `Ohm`, any other in its SI unit. Only the nominal value is exported; bounds and tolerance are not.
+- `clearance` is read as a length; every other field is parsed without a unit hint, so `50m` in `impedance` is 0.05 Ohm.
 - `symbol_*` and `__*` properties are left out.
 - `exports` lists what the file carries; a reader checks it before relying on a key.
 

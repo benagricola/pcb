@@ -2276,6 +2276,20 @@ mod tests {
     }
 
     #[test]
+    fn parse_as_reads_bare_m_by_the_expected_unit() {
+        let len = PhysicalUnitDims::LENGTH;
+        let mm = PhysicalValue::parse_as("2mm", len).unwrap();
+        assert_eq!((mm.unit, mm.nominal), (len, Decimal::new(2, 3)));
+        let m = PhysicalValue::parse_as("1m", len).unwrap();
+        assert_eq!((m.unit, m.nominal), (len, Decimal::ONE));
+        // A unit that is not the expected one parses as it would untyped.
+        let v = PhysicalValue::parse_as("48V", len).unwrap();
+        assert_eq!(v, "48V".parse::<PhysicalValue>().unwrap());
+        let milli_ohm = "1m".parse::<PhysicalValue>().unwrap();
+        assert_eq!(milli_ohm.unit, PhysicalUnit::Ohms.into());
+    }
+
+    #[test]
     fn test_si_base_parsing_is_contextual_and_legacy_safe() {
         let legacy_milli_ohm = "1m".parse::<PhysicalValue>().unwrap();
         assert_eq!(legacy_milli_ohm.unit, PhysicalUnit::Ohms.into());

@@ -45,4 +45,23 @@ fn the_sidecar_holds_each_nets_type_and_fields_in_fixed_units() {
     assert_eq!(doc["nets"]["TAP"]["fields"]["clearance"]["value"], 0.5);
     assert!(doc["nets"]["HV"]["fields"].get("symbol_name").is_none());
     assert_eq!(doc["nets"]["SIG"]["fields"], serde_json::json!({}));
+    assert_eq!(doc["nets"]["TAP"]["fields"]["clearance"]["value"], 0.5);
+}
+
+#[test]
+fn a_bare_m_is_metres_only_in_a_length_field() {
+    let mut sch = Schematic::default();
+    sch.nets.insert(
+        "Z".into(),
+        net("Z", "Net", &[("impedance", "50m"), ("clearance", "0.2032mm")]),
+    );
+    sch.nets.insert("Z2".into(), net("Z2", "Net", &[("impedance", "50")]));
+    let doc: serde_json::Value =
+        serde_json::from_str(&nets_layout_json(&sch, "")).unwrap();
+    assert_eq!(
+        doc["nets"]["Z"]["fields"]["impedance"],
+        serde_json::json!({"value": 0.05, "unit": "Ohm"})
+    );
+    assert_eq!(doc["nets"]["Z"]["fields"]["clearance"]["value"], 0.2032);
+    assert_eq!(doc["nets"]["Z2"]["fields"]["impedance"]["unit"], "Ohm");
 }

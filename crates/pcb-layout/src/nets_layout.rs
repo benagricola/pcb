@@ -2,23 +2,39 @@
 //! capture says they are. Keyed by the board's net names (`Schematic.nets` keys, which `to_kicad_netlist` writes).
 use pcb_sch::physical::{PhysicalUnitDims, PhysicalValue};
 use pcb_sch::{AttributeValue, Schematic};
+use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
+use std::str::FromStr;
 
 pub const FILE: &str = "nets.layout.json";
 
-fn field_value(v: &AttributeValue) -> Option<Value> {
+/// Fields whose values are lengths: a bare `m`/`mm` in them is metres, not milli-ohms.
+const LENGTH_FIELDS: &[&str] = &["clearance"];
+
+fn field_value(key: &str, v: &AttributeValue) -> Option<Value> {
     match v {
-        AttributeValue::String(s) => // Net fields are voltages, lengths and the like, so a bare `m`/`mm` is a length.
-        match PhysicalValue::parse_as(s, PhysicalUnitDims::LENGTH) {
-            Ok(p) if p.unit == PhysicalUnitDims::LENGTH => {
-                Some(json!({"value": p.nominal.to_f64()? * 1000.0, "unit": "mm"}))
+        AttributeValue::String(s) => {
+            let parsed = if LENGTH_FIELDS.contains(&key) {
+                PhysicalValue::parse_as(s, PhysicalUnitDims::LENGTH)
+            } else {
+                PhysicalValue::from_str(s)
+            };
+            match parsed {
+                // Decimal scaling first, so 8 mil is 0.2032 and not 0.20320000000000002.
+                Ok(p) if p.unit == PhysicalUnitDims::LENGTH => Some(
+                    json!({"value": (p.nominal * Decimal::from(1000)).to_f64()?, "unit": "mm"}),
+                ),
+                // An ohm prints as an empty suffix; name it so it reads apart from a plain number.
+                Ok(p) if p.unit == (PhysicalUnitDims::VOLTAGE / PhysicalUnitDims::CURRENT) => {
+                    Some(json!({"value": p.nominal.to_f64()?, "unit": "Ohm"}))
+                }
+                Ok(p) => Some(json!({"value": p.nominal.to_f64()?, "unit": p.unit.to_string()})),
+                Err(_) => Some(Value::String(s.clone())),
             }
-            Ok(p) => Some(json!({"value": p.nominal.to_f64()?, "unit": p.unit.to_string()})),
-            Err(_) => Some(Value::String(s.clone())),
-        },
+        }
         AttributeValue::Number(n) => Some(json!(n)),
         AttributeValue::Boolean(b) => Some(json!(b)),
         _ => None,
@@ -35,7 +51,7 @@ pub fn nets_layout_json(schematic: &Schematic, netlist: &str) -> String {
             if key.starts_with("symbol") || key.starts_with("__") {
                 continue;
             }
-            if let Some(v) = field_value(&net.properties[key]) {
+            if let Some(v) = field_value(key, &net.properties[key]) {
                 fields.insert(key.clone(), v);
             }
         }
